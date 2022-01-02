@@ -5,8 +5,9 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.models as models
+import torchvision
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as TF
 from PIL import Image
 import io
 import requests
@@ -15,7 +16,6 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 JSON_CONTENT_TYPE = 'application/json'
 JPEG_CONTENT_TYPE = 'image/jpeg'
-
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class DoubleConv(nn.Module):
