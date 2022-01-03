@@ -7,10 +7,9 @@ from albumentations.pytorch import ToTensorV2
 from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
-from model import UNET # model is file name. UNET is class name.
+from model import UNET
 from utils import (
     get_loaders,
-    #check_accuracy,
     save_predictions_as_imgs,
 )
 import smdebug.pytorch as smd
@@ -19,18 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
-
-# Hyperparameters etc.
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-
-#LOAD_MODEL = False
-#TRAIN_IMG_DIR = "/opt/ml/input/data/train"
-#TRAIN_MASK_DIR = "/opt/ml/input/data/train_masks"
-#VAL_IMG_DIR = "/opt/ml/input/data/val"
-#VAL_MASK_DIR = "/opt/ml/input/data/val_masks" 
-
-
 
 def train_fn(loader, model, optimizer, loss_fn , scaler, hook ):
     loop = tqdm(loader)
@@ -43,8 +31,6 @@ def train_fn(loader, model, optimizer, loss_fn , scaler, hook ):
         with torch.cuda.amp.autocast():
             predictions = model(data)
             loss = loss_fn(predictions, targets)
-            #for i in range(100):
-                #running_loss.append(loss)
             
 
         # backward
@@ -52,13 +38,10 @@ def train_fn(loader, model, optimizer, loss_fn , scaler, hook ):
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
-        #running_loss= running_loss.append(loss)
 
         # update tqdm loop
         loop.set_postfix(loss=loss.item())
         
-        #logger.info('{},{}'.format(loss.type,running_loss[0]))
-        #ListHandler.emit(log_list,loss)
 def validate(val_loader, model, loss_fn, hook):
     num_correct = 0
     num_pixels = 0
@@ -154,19 +137,12 @@ def main(args):
     hook.register_module(model)
     hook.register_loss(loss_fn)
     
-
-
-    #check_accuracy(val_loader, model,hook, device=DEVICE)
     scaler = torch.cuda.amp.GradScaler()
     val_acc =[]
     for epoch in range(NUM_EPOCHS):
         train_fn(train_loader, model, optimizer, loss_fn, scaler, hook)
         valid_accuracy = validate(val_loader, model, loss_fn , hook)
         # save model
-        checkpoint = {
-            "state_dict": model.state_dict(),
-            "optimizer":optimizer.state_dict(),
-        }
         torch.save(model.state_dict(), os.path.join(args.model_dir, "model.pth"))
         save_predictions_as_imgs(
         val_loader, model, folder='/opt/ml/output', device=DEVICE
