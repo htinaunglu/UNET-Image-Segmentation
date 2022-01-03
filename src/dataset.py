@@ -8,8 +8,6 @@ class CarvanaDataset(Dataset):
         self.image_dir = image_dir
         self.mask_dir = mask_dir
         self.transform = transform
-        #self.images = os.listdir(image_dir)
-        #self.images = os.walk(image_dir)
         dirs = os.listdir(image_dir)
         self.images = [x for x in dirs if os.path.isfile(os.path.join(image_dir, x))]
 
