@@ -6,7 +6,7 @@ This is a full project of image segmentation using the model built with U-Net Al
 Use AWS Sagemaker to train the model built with U-Net algorithm/architecture that can perform image segmentation on Carvana Dataset from Kaggle Competition.
 
 ## Project Set Up and Installation
-Enter AWS through the gateway and create a Sagemaker notebook instance of your choice, `ml.t2.medium` is a sweet spot for this project as we will not use the GPU in the notebook and will use the Sagemaker Container to train the model. Wait for the instance to launch and then create a jupyter notebook with `conda_pytorch_latest_p36` kernel, this comes preinstalled with the needed modules we will use along the project. Set up your sagemaker roles and regions.
+Enter AWS through the gateway and create a Sagemaker notebook instance of your choice, `ml.t2.medium` is a sweet spot for this project as we will not use the GPU in the notebook and will use the Sagemaker Container to train the model. Wait for the instance to launch and then create a jupyter notebook with `conda_pytorch_latest_p36` kernel, this comes preinstalled with the needed modules related to pytorch we will use along the project. Set up your sagemaker roles and regions.
 
 ## Dataset
 We use the **Carvana Dataset** from Kaggle Competition to use as data for the model training job. To get the Dataset. Register or Login to your Kaggle account, create new api in the user setting and get the api key and put it in the root of your sagemaker environment root location. 
@@ -18,7 +18,7 @@ After that `!kaggle competitions download carvana-image-masking-challenge -f tra
 2. `training.py` for the final training of the model with the best parameters getting from the previous tuning jobs, and put debug and profiler hooks for debugging purpose and get the tensors emits during training.
 3. `endpoint.py` to using the trained model as inference and post-processing and serializing the data before it passes to the endpoint for prediction.
 4. *Note* at this time, the sagemaker endpoint has an error and can't make prediction, so I have managed to create a new instance in sagemaker(`ml.g4dn.xlarge` to utilize the GPU) and used `endpoint_local.ipynb` notebook to get the inference result.
-5. `requirements.txt` is use to install the dependencies in the training container.
+5. `requirements.txt` is use to install the dependencies in the training container, these include Albumentations, higher version of torch dependencies to utilize in the training script.
 
 ## Hyperparameter Tuning
 I used U-Net Algorithm to create an image segmentation model.
