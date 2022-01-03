@@ -32,7 +32,7 @@ class DoubleConv(nn.Module):
     
     def forward(self, x):
         return self.conv(x)
-        
+
 class UNET(nn.Module):
     def __init__(self, in_channels = 3, out_channels = 1, features = [64, 128, 256, 512],):
         super(UNET, self).__init__()
@@ -92,10 +92,11 @@ def model_fn(model_dir):
     
     with open(os.path.join(model_dir, "model.pth"), "rb") as f:
         print("Loading the U-NET model")
-        checkpoint = torch.load(f , map_location =DEVICE)
+        checkpoint = torch.load(f)
         model.load_state_dict(checkpoint)
         print('MODEL-LOADED')
         logger.info('model loaded successfully')
+    #model.load_state_dict(checkpoint)
     model.eval()
     return model
 
@@ -105,7 +106,8 @@ def input_fn(request_body, content_type=JPEG_CONTENT_TYPE):
     #if content_type == JPEG_CONTENT_TYPE: return io.BytesIO(request_body)
     logger.debug(f'Request body CONTENT-TYPE is: {content_type}')
     logger.debug(f'Request body TYPE is: {type(request_body)}')
-    if content_type == JPEG_CONTENT_TYPE: return Image.open(io.BytesIO(request_body))
+    if content_type == JPEG_CONTENT_TYPE: 
+        return Image.open(io.BytesIO(request_body))
     logger.debug('SO loded JPEG content')
     # process a URL submitted to the endpoint
     
@@ -123,22 +125,22 @@ def input_fn(request_body, content_type=JPEG_CONTENT_TYPE):
 def predict_fn(input_object, model):
     
     logger.info('In predict fn')
-    test_transform = transforms.Compose([
-    transforms.Resize((160, 240)),
-    transforms.Normalize(
-                mean=[0.0, 0.0, 0.0],
-                std=[1.0, 1.0, 1.0],
-                max_pixel_value=255.0,
-            ),
-    transforms.ToTensorV2()
-    ])
+    test_transform = transforms.Compose([transforms.Resize((160, 240)),
+                                         transforms.ToTensor(),
+                                         transforms.Normalize(mean=[0.0, 0.0, 0.0],
+                                                              std=[1.0, 1.0, 1.0])])
+                                                              #max_pixel_value=255.0,
     logger.info("transforming input")
-    input_object=test_transform(input_object)
+    input_object=test_transform(input_object) #1st error with Image # Solved
     input_object = input_object.cuda() #put data into GPU
     with torch.no_grad():
+        input_object = input_object.unsqueeze(0)
         logger.info("Calling model")
-        preds = torch.sigmoid(model(input_object))
+        preds = torch.sigmoid(model(input_object)) #2nd error #Solved
         preds = (preds > 0.5).float()
-        prediction = torchvision.utils.draw_segmentation_masks(preds)
-        
+        prediction = preds
+    logger.info(prediction)
+    torchvision.utils.save_image(
+            preds, f"./pred_.png"
+        )
     return prediction
