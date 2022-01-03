@@ -52,5 +52,6 @@ Sagemaker Endpoint got an 500 status code error so I tried using another sagemak
 
 
 **Thank You So Much For Your Time!**
-*Please don't hesitate to contribute*
+*Please don't hesitate to contribute.*
+
 Ref: [Github repo of neirinzaralwin](https://github.com/neirinzaralwin)
