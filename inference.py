@@ -1,4 +1,3 @@
-import json
 import logging
 import sys
 import os
@@ -10,14 +9,13 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
 from PIL import Image
 import io
-import requests
+from tqdm import tqdm
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 JSON_CONTENT_TYPE = 'application/json'
 JPEG_CONTENT_TYPE = 'image/jpeg'
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(DoubleConv, self).__init__()
@@ -67,7 +65,6 @@ class UNET(nn.Module):
             x = self.pool(x)
         
         x = self.bottleneck(x)
-        # reverse the skipconnection list
         skip_connections = skip_connections[::-1]
         
         for idx in range(0, len(self.ups), 2):
@@ -75,8 +72,6 @@ class UNET(nn.Module):
             skip_connection = skip_connections[idx//2]
             
             if x.shape != skip_connection.shape:
-                # take out the width and heigh of neuron, we use only channel
-                # eg. 161 x 161 -> output: 160 x 160 (we can't pooling for edges)
                 x = TF.resize(x, size= skip_connection.shape[2:]) 
             
             concat_skip = torch.cat((skip_connection, x), dim = 1)
@@ -85,62 +80,55 @@ class UNET(nn.Module):
         return self.final_conv(x)
 
 def model_fn(model_dir):
-    print("In model_fn. Model directory is -")
+    print("In model_fn. Model directory is - ")
     print(model_dir)
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = UNET(in_channels=3, out_channels=1).to(DEVICE)
     
-    with open(os.path.join(model_dir, "model.pth"), "rb") as f:
+    with open("./model.pth", "rb") as f:
         print("Loading the U-NET model")
         checkpoint = torch.load(f)
         model.load_state_dict(checkpoint)
         print('MODEL-LOADED')
-        logger.info('model loaded successfully')
-    #model.load_state_dict(checkpoint)
+        logger.info('model loaded successfully!\n')
     model.eval()
     return model
 
 def input_fn(request_body, content_type=JPEG_CONTENT_TYPE):
-    logger.info('Deserializing the input data.')
-    # process an image uploaded to the endpoint
-    #if content_type == JPEG_CONTENT_TYPE: return io.BytesIO(request_body)
-    logger.debug(f'Request body CONTENT-TYPE is: {content_type}')
-    logger.debug(f'Request body TYPE is: {type(request_body)}')
     if content_type == JPEG_CONTENT_TYPE: 
         return Image.open(io.BytesIO(request_body))
-    logger.debug('SO loded JPEG content')
-    # process a URL submitted to the endpoint
-    
-    if content_type == JSON_CONTENT_TYPE:
-        #img_request = requests.get(url)
-        logger.debug(f'Request body is: {request_body}')
-        request = json.loads(request_body)
-        logger.debug(f'Loaded JSON object: {request}')
-        url = request['url']
-        img_content = requests.get(url).content
-        return Image.open(io.BytesIO(img_content))
-    
     raise Exception('Requested unsupported ContentType in content_type: {}'.format(content_type))
 
 def predict_fn(input_object, model):
-    
-    logger.info('In predict fn')
     test_transform = transforms.Compose([transforms.Resize((160, 240)),
                                          transforms.ToTensor(),
                                          transforms.Normalize(mean=[0.0, 0.0, 0.0],
                                                               std=[1.0, 1.0, 1.0])])
-                                                              #max_pixel_value=255.0,
-    logger.info("transforming input")
     input_object=test_transform(input_object) #1st error with Image # Solved
     input_object = input_object.cuda() #put data into GPU
     with torch.no_grad():
         input_object = input_object.unsqueeze(0)
-        logger.info("Calling model")
         preds = torch.sigmoid(model(input_object)) #2nd error #Solved
-        preds = (preds > 0.5).float()
-        prediction = preds
-    logger.info(prediction)
-    torchvision.utils.save_image(
-            preds, f"./pred_.png"
-        )
+        prediction = (preds > 0.5).float()
     return prediction
+
+def main():
+    model_dir = input("Please input your model path ")# Model path and name
+    model = model_fn(model_dir)
+    image_folder = input("\nPlease input your image folder path ")# test image folder
+    saved_folder = input("\nPlease input your saving folder path ") #prediction result folder
+    if not os.path.exists(saved_folder):
+        os.makedirs(saved_folder)
+    count = os.listdir(image_folder)
+    for i in tqdm(range(len(count)-1), desc = " Segmentating your images! Progress: "):
+        img_name = count[i]
+        with open(os.path.join(image_folder, img_name),"rb") as myimg:
+            payload = myimg.read() 
+        imgf = input_fn(payload, content_type=JPEG_CONTENT_TYPE)
+        prediction = predict_fn(imgf, model)
+        torchvision.utils.save_image(
+        prediction,  str(saved_folder) +"/" + str(img_name[:-4]) + "_pred.png")
+    logger.info("DONE!!! Please check your masks in " + saved_folder)
+        
+if __name__ == "__main__":
+    main()
