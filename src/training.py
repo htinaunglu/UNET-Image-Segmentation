@@ -8,10 +8,8 @@ from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
 from model import UNET
-from utils import (
-    get_loaders,
-    save_predictions_as_imgs,
-)
+from utils import get_loaders
+    
 import smdebug.pytorch as smd
 import logging
 
@@ -144,9 +142,6 @@ def main(args):
         valid_accuracy = validate(val_loader, model, loss_fn , hook)
         # save model
         torch.save(model.state_dict(), os.path.join(args.model_dir, "model.pth"))
-        save_predictions_as_imgs(
-        val_loader, model, folder='/opt/ml/output', device=DEVICE
-        )
     
 if __name__ == "__main__":
     
