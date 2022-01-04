@@ -16,8 +16,8 @@ After that `!kaggle competitions download carvana-image-masking-challenge -f tra
 ## Script Files used
 1. `hpo.py` for hyperparameter tuning jobs where we train the model for multiple time with different hyperparameters and search for the best combination based on loss metrics.
 2. `training.py` for the final training of the model with the best parameters getting from the previous tuning jobs, and put debug and profiler hooks for debugging purpose and get the tensors emits during training.
-3. `endpoint.py` to using the trained model as inference and post-processing and serializing the data before it passes to the endpoint for prediction.
-4. *Note* at this time, the sagemaker endpoint has an error and can't make prediction, so I have managed to create a new instance in sagemaker(`ml.g4dn.xlarge` to utilize the GPU) and used `endpoint_local.ipynb` notebook to get the inference result.
+3. `inference.py` for using the trained model as inference and pre-processing and serializing the data before it passes to the model for segmentaion. **Now this can be used locally and user friendly**
+4. **Note** at this time, the sagemaker endpoint has an error and can't make prediction, so I have managed to create a new instance in sagemaker(`ml.g4dn.xlarge` to utilize the GPU) and used `endpoint_local.ipynb` notebook to get the inference result.
 5. `requirements.txt` is use to install the dependencies in the training container, these include Albumentations, higher version of torch dependencies to utilize in the training script.
 
 ## Hyperparameter Tuning
